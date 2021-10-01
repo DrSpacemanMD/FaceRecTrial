@@ -6,12 +6,12 @@ from mtcnn.mtcnn import MTCNN
 from keras_vggface.vggface import VGGFace
 from keras_vggface.utils import preprocess_input
 import matplotlib.pyplot as plt
-
+import time
+import cv2
+import numpy as np
 
 # extract a single face from a given photograph
-def extract_face(filename, required_size=(224, 224)):
-	# load image from file
-	pixels = pyplot.imread(filename)
+def extract_face(pixels, required_size=(224, 224)):
 	# create the detector, using default weights
 	detector = MTCNN()
 	# detect faces in the image
@@ -28,9 +28,9 @@ def extract_face(filename, required_size=(224, 224)):
 	return face_array
 
 # extract faces and calculate face embeddings for a list of photo files
-def get_features(filenames):
+def get_features(pixels): #Load list of images
 	# extract faces
-	faces = [extract_face(f) for f in filenames]
+	faces = [extract_face(f) for f in pixels]
 	# convert into an array of samples
 	samples = asarray(faces, 'float32')
 	# prepare the face for the model, e.g. center pixels
@@ -39,22 +39,82 @@ def get_features(filenames):
 	model = VGGFace(model='resnet50', include_top=False, input_shape=(224, 224, 3), pooling='avg')
 	# perform prediction
 	yhat = model.predict(samples)
-	return yhat
+	return yhat,faces
 
 # determine if a candidate face is a match for a known face
 def is_match(known_embedding, candidate_embedding, thresh=0.5):
 	# calculate distance between embeddings
 	score = cosine(known_embedding, candidate_embedding)
 	if score <= thresh:
-		print('>face is a Match (%.3f <= %.3f)' % (score, thresh))
+		return True, 1-score
 	else:
-		print('>face is NOT a Match (%.3f > %.3f)' % (score, thresh))
+		return False, 1-score
 
+
+
+def SimpleWebcamTest():
+
+	input("Press Enter to take first photo...")
+	video_capture = cv2.VideoCapture(0)
+	# Check success
+	if not video_capture.isOpened():
+		raise Exception("Could not open video device")
+	# Read picture. ret === True on success
+	time.sleep(3)
+	ret, frame = video_capture.read()
+	# Close device
+	video_capture.release()
+	frameRGB = frame[:,:,::-1] # BGR => RGB
+	features1,faces1 = get_features([frameRGB])
+
+
+	input("Press Enter to take Second photo...")
+	video_capture = cv2.VideoCapture(0)
+	# Check success
+	if not video_capture.isOpened():
+		raise Exception("Could not open video device")
+	# Read picture. ret === True on success
+	time.sleep(3)
+	ret, frame = video_capture.read()
+	# Close device
+	video_capture.release()
+	frameRGB = frame[:,:,::-1] # BGR => RGB
+	features2,faces2  = get_features([frameRGB])
+	Result, score = is_match(features1[0], features2[0])
+
+
+	f = plt.figure()
+	f.add_subplot(1,2, 1)
+	plt.imshow(faces1[0])
+	f.add_subplot(1,2, 2)
+	plt.imshow(faces2[0])
+
+	if Result == True:
+		print ("Face is a match!, Score: " + str(score))
+	else:
+		print ("Face is not a match!, Score: " + str(score))
+
+
+	plt.show(block=True)
+
+
+SimpleWebcamTest()
+
+
+
+
+
+
+'''
 # define filenames
 filenames = ['sharon_stone1.jpg', 'sharon_stone2.jpg',
 	'sharon_stone3.jpg', 'channing_tatum.jpg']
+
+images = [pyplot.imread(filenames[0]),pyplot.imread(filenames[1]),pyplot.imread(filenames[2]),pyplot.imread(filenames[3])]
+
 # get embeddings file filenames
-embeddings = get_features(filenames)
+embeddings,faces = get_features(images)
+
 # define sharon stone
 sharon_id = embeddings[0]
 # verify known photos of sharon
@@ -64,3 +124,4 @@ is_match(embeddings[0], embeddings[2])
 # verify known photos of other people
 print('Negative Tests')
 is_match(embeddings[0], embeddings[3])
+'''
