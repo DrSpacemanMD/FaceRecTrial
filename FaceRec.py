@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import time
 import cv2
 import numpy as np
+import sys
 
 # extract a single face from a given photograph
 def extract_face(pixels, required_size=(224, 224)):
@@ -16,6 +17,10 @@ def extract_face(pixels, required_size=(224, 224)):
 	detector = MTCNN()
 	# detect faces in the image
 	results = detector.detect_faces(pixels)
+	if (len(results)==0):
+		return [],"No Face Found!"
+	if (len(results)>1):
+		return [],"Multiple Faces Found!"
 	# extract the bounding box from the first face
 	x1, y1, width, height = results[0]['box']
 	x2, y2 = x1 + width, y1 + height
@@ -25,12 +30,15 @@ def extract_face(pixels, required_size=(224, 224)):
 	image = Image.fromarray(face)
 	image = image.resize(required_size)
 	face_array = asarray(image)
-	return face_array
+	return face_array,"Face Found"
 
 # extract faces and calculate face embeddings for a list of photo files
 def get_features(pixels): #Load list of images
 	# extract faces
-	faces = [extract_face(f) for f in pixels]
+	faces,ReturnCode = extract_face(pixels)
+	faces = [faces]
+	if (ReturnCode != "Face Found"):
+		return [],[],ReturnCode
 	# convert into an array of samples
 	samples = asarray(faces, 'float32')
 	# prepare the face for the model, e.g. center pixels
@@ -39,7 +47,7 @@ def get_features(pixels): #Load list of images
 	model = VGGFace(model='resnet50', include_top=False, input_shape=(224, 224, 3), pooling='avg')
 	# perform prediction
 	yhat = model.predict(samples)
-	return yhat,faces
+	return yhat,faces,ReturnCode
 
 # determine if a candidate face is a match for a known face
 def is_match(known_embedding, candidate_embedding, thresh=0.5):
@@ -53,33 +61,28 @@ def is_match(known_embedding, candidate_embedding, thresh=0.5):
 
 
 def SimpleWebcamTest():
-
-	input("Press Enter to take first photo...")
+	
 	video_capture = cv2.VideoCapture(0)
-	# Check success
+	time.sleep(5)
+
+	print("Taking first photo...")
 	if not video_capture.isOpened():
 		raise Exception("Could not open video device")
-	# Read picture. ret === True on success
-	time.sleep(3)
 	ret, frame = video_capture.read()
-	# Close device
-	video_capture.release()
+
 	frameRGB = frame[:,:,::-1] # BGR => RGB
 	features1,faces1 = get_features([frameRGB])
-
-
-	input("Press Enter to take Second photo...")
-	video_capture = cv2.VideoCapture(0)
-	# Check success
-	if not video_capture.isOpened():
-		raise Exception("Could not open video device")
-	# Read picture. ret === True on success
-	time.sleep(3)
+    
+	
+	time.sleep(2)
+	print("Taking second photo...")
 	ret, frame = video_capture.read()
 	# Close device
 	video_capture.release()
 	frameRGB = frame[:,:,::-1] # BGR => RGB
 	features2,faces2  = get_features([frameRGB])
+	plt.imshow(frameRGB)
+	plt.show()
 	Result, score = is_match(features1[0], features2[0])
 
 
@@ -96,9 +99,6 @@ def SimpleWebcamTest():
 
 
 	plt.show(block=True)
-
-
-SimpleWebcamTest()
 
 
 
