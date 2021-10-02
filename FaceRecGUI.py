@@ -34,12 +34,12 @@ PlaceHolder = ImageTk.PhotoImage(PlaceHolderImg)
 
 ImageFrame = Frame(root)
 #Set up the last enrolled image
-EnrolImage = Label(ImageFrame)
-EnrolImage.imgtk = PlaceHolder
-EnrolImage.configure(image=PlaceHolder)
-EnrolText = Label(ImageFrame, text="last Enrolled Face")
-EnrolText.grid(row=0,column=0)
-EnrolImage.grid(row=1,column=0)
+LastImage = Label(ImageFrame)
+LastImage.imgtk = PlaceHolder
+LastImage.configure(image=PlaceHolder)
+LastImageText = Label(ImageFrame, text="last Image Taken")
+LastImageText.grid(row=0,column=0)
+LastImage.grid(row=1,column=0)
 
 #set up the identifed image
 IdentifedImage = Label(ImageFrame)
@@ -121,15 +121,18 @@ class AsyncEnrol(Thread):
 		if (ReturnCode != "Face Found"):
 			Status["text"] = "Ready!"
 			return
-		faceTK = ImageTk.PhotoImage(faceobj.face)  
-		EnrolImage.imgtk = faceTK
-		EnrolImage.configure(image=faceTK)
+		#faceTK = ImageTk.PhotoImage(faceobj.face)  
+		#EnrolImage.imgtk = faceTK
+		#EnrolImage.configure(image=faceTK)
+		UpdateImage(faceobj)
 		with open("Library/"+faceobj.name + ".pickle", 'wb') as file:
 			pickle.dump(faceobj, file) 
 		Status["text"] = "Ready!"
 			
-			
-			
+def UpdateImage(faceobj):	
+	faceTK = ImageTk.PhotoImage(faceobj.face)  
+	LastImage.imgtk = faceTK
+	LastImage.configure(image=faceTK)
 #Old Single thread code..		
 '''
 def IdentifyFace():	
@@ -170,6 +173,7 @@ class AsyncIdentify(Thread):
 		if (ReturnCode != "Face Found"):
 			Status["text"] = "Ready!"
 			return
+		UpdateImage(faceobj)
 		files = glob.glob("Library/*.pickle")
 		
 		BestScore = -1
