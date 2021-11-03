@@ -134,6 +134,8 @@ def GetAccuracyKFolds(FoldNumbers):
 def GetFullAcc():
 	MatchScores = list(np.load("MatchScores.npy"))
 	MisMatchScores = list(np.load("MisMatchScores.npy"))
+	
+	
 	scores=( list(MatchScores) + list(MisMatchScores))
 	y=( [1]*len(MatchScores) + [0]*len(MisMatchScores) )
 	
@@ -171,12 +173,13 @@ def GetFullAcc():
 	FN = FNR*len(MatchScores)
 	Accuracy = (TP+TN)/(FP+FN+TP+TN)
 	
+	print ("threshold: " + str(optimal_threshold))
 	print ("Accuracy: " + str(Accuracy))
 	print ("TA Rate: " + str(TPR))
 	print ("TR Rate: " + str(TNR))
 	print ("FA Rate: " + str(FPR))
 	print ("FR Rate: " + str(FNR))
 	
-GetScores()
-#GetAccuracyKFolds(2)
-#GetFullAcc()
+#GetScores()
+GetAccuracyKFolds(10)
+GetFullAcc()
