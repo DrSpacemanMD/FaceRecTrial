@@ -8,12 +8,12 @@ import glob
 from dataclasses import dataclass
 import tkinter.messagebox
 from threading import Thread
-
+import os
 
 class Face:
 	def __init__(self, name, features, face):
 		self.name = name
-		self.features = features
+		self.features = [features]
 		self.face = face
 		
 
@@ -96,16 +96,6 @@ def GetWebCamFace():
 		return None, ReturnCode
 	return Face(NameEntry.get(),features,Image.fromarray(faces[0])), ReturnCode
 
-#Old Single thread code..
-'''
-def EnrolFace():
-	faceobj = GetWebCamFace()
-	faceTK = ImageTk.PhotoImage(faceobj.face)  
-	EnrolImage.imgtk = faceTK
-	EnrolImage.configure(image=faceTK)
-	with open("Library/"+faceobj.name + ".pickle", 'wb') as file:
-		pickle.dump(faceobj, file) 
-'''	
 
 def EnrolFace():
 	Enrol = AsyncEnrol()
@@ -125,39 +115,26 @@ class AsyncEnrol(Thread):
 		#EnrolImage.imgtk = faceTK
 		#EnrolImage.configure(image=faceTK)
 		UpdateImage(faceobj)
-		with open("Library/"+faceobj.name + ".pickle", 'wb') as file:
-			pickle.dump(faceobj, file) 
+		
+		
+		file = "Library/"+faceobj.name + ".pickle"
+		if os.path.isfile(file) == False: #if the person isn't in the library and this is when the face pic gets assigned 
+			with open("Library/"+faceobj.name + ".pickle", 'wb') as file:
+				pickle.dump(faceobj, file) 
+		
+		else: #Otherwise add it to the list..
+			with open(file, 'rb') as loadedfile:
+				LoadedFace = pickle.load(loadedfile)
+				LoadedFace.features.append(faceobj.features)
+			with open("Library/"+faceobj.name + ".pickle", 'wb') as file:
+				pickle.dump(LoadedFace, file) 
+		
 		Status["text"] = "Ready!"
 			
 def UpdateImage(faceobj):	
 	faceTK = ImageTk.PhotoImage(faceobj.face)  
 	LastImage.imgtk = faceTK
-	LastImage.configure(image=faceTK)
-#Old Single thread code..		
-'''
-def IdentifyFace():	
-	faceobj = GetWebCamFace()
-	files = glob.glob("Library/*.pickle")
-	
-	BestScore = -1
-	BestMatch = None
-	for file in files:
-		with open(file, 'rb') as loadedfile:
-			LoadedFace = pickle.load(loadedfile)
-			Result, score = is_match(faceobj.features, LoadedFace.features)
-			if (Result==True):
-				if (score > BestScore):
-					BestScore=score
-					BestMatch=LoadedFace
-					
-	if (BestMatch!=None):
-		faceTK = ImageTk.PhotoImage(faceobj.face)  
-		IdentifedImage.imgtk = faceTK
-		IdentifedImage.configure(image=faceTK)
-		ResultText['text'] ="Identified as " + faceobj.name +" " + str(round(BestScore*100,2))+"%"
-	else:
-		ResultText['text'] ="No positive match"
-'''			
+	LastImage.configure(image=faceTK)	
 
 def IdentifyFace():				
 	Identify = AsyncIdentify()
@@ -181,11 +158,12 @@ class AsyncIdentify(Thread):
 		for file in files:
 			with open(file, 'rb') as loadedfile:
 				LoadedFace = pickle.load(loadedfile)
-				Result, score = is_match(faceobj.features, LoadedFace.features)
-				if (Result==True):
-					if (score > BestScore):
-						BestScore=score
-						BestMatch=LoadedFace
+				for features in LoadedFace.features:
+					Result, score = is_match(faceobj.features, features)
+					if (Result==True):
+						if (score > BestScore):
+							BestScore=score
+							BestMatch=LoadedFace
 						
 		if (BestMatch!=None):
 			faceTK = ImageTk.PhotoImage(BestMatch.face)  

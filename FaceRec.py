@@ -104,7 +104,6 @@ def SimpleWebcamTest():
 
 
 
-
 '''
 # define filenames
 filenames = ['sharon_stone1.jpg', 'sharon_stone2.jpg',
